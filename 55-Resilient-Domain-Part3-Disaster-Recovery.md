@@ -1,0 +1,710 @@
+# AWS SAA-C03: DESIGN RESILIENT ARCHITECTURES - PART 3
+
+## 📋 DISASTER RECOVERY & BACKUP STRATEGIES
+
+---
+
+# 🔄 DISASTER RECOVERY OVERVIEW
+
+## Key Concepts
+
+| Term | Definition |
+|------|------------|
+| **RTO** | Recovery Time Objective - Maximum acceptable downtime |
+| **RPO** | Recovery Point Objective - Maximum acceptable data loss |
+| **DR Region** | Secondary region for failover |
+| **Pilot Light** | Minimal resources running in DR region |
+| **Warm Standby** | Scaled-down but functional system in DR |
+| **Active-Active** | Full capacity in multiple regions |
+
+---
+
+## RPO vs RTO
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    RPO vs RTO VISUALIZATION                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   Timeline:                                                          │
+│                                                                      │
+│   Last Good    Disaster      Recovery    System                      │
+│   Backup       Occurs        Starts      Restored                    │
+│      │            │             │            │                       │
+│   ───●────────────●─────────────●────────────●───────────▶ Time     │
+│      │            │             │            │                       │
+│      │◀─── RPO ──▶│             │◀─── RTO ──▶│                       │
+│      │            │             │            │                       │
+│   Data that      │             │         Back to                     │
+│   could be       │             │         normal                      │
+│   lost           │             │                                     │
+│                  │             │                                     │
+│            Acceptable        Acceptable                              │
+│            Data Loss         Downtime                                │
+│                                                                      │
+│   EXAMPLES:                                                          │
+│   RPO = 1 hour → Can lose up to 1 hour of data                      │
+│   RTO = 4 hours → Must be back online within 4 hours                │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+# 🏗️ DISASTER RECOVERY STRATEGIES
+
+## Strategy Comparison
+
+| Strategy | RTO | RPO | Cost | Description |
+|----------|-----|-----|------|-------------|
+| **Backup & Restore** | Hours | Hours | $ | Restore from backups |
+| **Pilot Light** | 10s of minutes | Minutes | $$ | Core systems always running |
+| **Warm Standby** | Minutes | Seconds | $$$ | Scaled-down full system |
+| **Multi-Site/Active-Active** | Real-time | Near zero | $$$$ | Full systems in both regions |
+
+---
+
+## Strategy 1: Backup and Restore
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    BACKUP AND RESTORE                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   PRIMARY REGION (us-east-1)         DR REGION (us-west-2)          │
+│                                                                      │
+│   ┌─────────────────────┐            ┌─────────────────────┐        │
+│   │                     │            │                     │        │
+│   │  ┌─────┐  ┌─────┐  │            │     (No active      │        │
+│   │  │ EC2 │  │ EC2 │  │            │      resources)     │        │
+│   │  └─────┘  └─────┘  │            │                     │        │
+│   │                     │            │                     │        │
+│   │     ┌───────┐      │            │                     │        │
+│   │     │  RDS  │      │   Backup   │                     │        │
+│   │     │Primary│──────┼───────────▶│   S3 (Snapshots)   │        │
+│   │     └───────┘      │            │                     │        │
+│   │                     │            │                     │        │
+│   │     ┌───────┐      │   Backup   │                     │        │
+│   │     │  S3   │──────┼───────────▶│   S3 (Replicated)  │        │
+│   │     │ Data  │      │            │                     │        │
+│   │     └───────┘      │            │                     │        │
+│   │                     │            │                     │        │
+│   └─────────────────────┘            └─────────────────────┘        │
+│                                                                      │
+│   DURING DISASTER:                                                   │
+│   1. Launch CloudFormation stack in DR region                       │
+│   2. Restore RDS from snapshot                                      │
+│   3. Launch EC2 instances from AMIs                                 │
+│   4. Update Route 53 to point to DR region                          │
+│                                                                      │
+│   CHARACTERISTICS:                                                   │
+│   ✓ Lowest cost                                                     │
+│   ✓ Longest RTO (hours)                                             │
+│   ✓ RPO depends on backup frequency                                 │
+│   ✓ Good for non-critical systems                                   │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Components
+
+| Component | Backup Method |
+|-----------|---------------|
+| **RDS** | Automated snapshots, manual snapshots |
+| **EC2** | AMIs, EBS snapshots |
+| **S3** | Cross-region replication |
+| **DynamoDB** | Point-in-time recovery, on-demand backup |
+| **EFS** | AWS Backup |
+| **Configuration** | CloudFormation templates in S3 |
+
+---
+
+## Strategy 2: Pilot Light
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    PILOT LIGHT                                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   PRIMARY REGION (us-east-1)         DR REGION (us-west-2)          │
+│                                                                      │
+│   ┌─────────────────────┐            ┌─────────────────────┐        │
+│   │                     │            │                     │        │
+│   │  ┌─────┐  ┌─────┐  │            │     EC2 instances   │        │
+│   │  │ EC2 │  │ EC2 │  │            │     (NOT running)   │        │
+│   │  │Active│  │Active│  │            │     AMIs ready      │        │
+│   │  └─────┘  └─────┘  │            │                     │        │
+│   │                     │            │                     │        │
+│   │     ┌───────┐      │  Continuous│     ┌───────┐      │        │
+│   │     │  RDS  │──────┼──Replication▶│  │  RDS  │      │        │
+│   │     │Primary│      │            │     │Replica│      │        │
+│   │     └───────┘      │            │     │(Running)│    │        │
+│   │                     │            │     └───────┘      │        │
+│   │     ┌───────┐      │  Continuous│     ┌───────┐      │        │
+│   │     │  S3   │──────┼──Replication▶│  │  S3   │      │        │
+│   │     │ Data  │      │            │     │(Replica)│    │        │
+│   │     └───────┘      │            │     └───────┘      │        │
+│   │                     │            │                     │        │
+│   └─────────────────────┘            └─────────────────────┘        │
+│                                                                      │
+│   DURING DISASTER:                                                   │
+│   1. Promote RDS replica to primary                                 │
+│   2. Launch EC2 instances from AMIs                                 │
+│   3. Scale up if needed                                             │
+│   4. Update Route 53 to point to DR region                          │
+│                                                                      │
+│   "PILOT LIGHT" = Core components always running (like a pilot      │
+│   light on a gas heater, ready to ignite the full system)           │
+│                                                                      │
+│   CHARACTERISTICS:                                                   │
+│   ✓ Lower cost than warm standby                                    │
+│   ✓ RTO: 10s of minutes                                             │
+│   ✓ RPO: Minutes (continuous replication)                           │
+│   ✓ Core DB infrastructure always running                           │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### What's Running in Pilot Light
+
+| Component | Status |
+|-----------|--------|
+| **Database replica** | ✅ Running (continuous replication) |
+| **S3 replication** | ✅ Active |
+| **Application servers** | ❌ Not running (launch on demand) |
+| **Load balancers** | ❌ Not running (create on demand) |
+| **AMIs** | ✅ Current and ready |
+| **CloudFormation** | ✅ Templates ready |
+
+---
+
+## Strategy 3: Warm Standby
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    WARM STANDBY                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   PRIMARY REGION (us-east-1)         DR REGION (us-west-2)          │
+│                                                                      │
+│   ┌─────────────────────┐            ┌─────────────────────┐        │
+│   │                     │            │                     │        │
+│   │   ┌───────────┐    │            │   ┌───────────┐     │        │
+│   │   │    ALB    │    │            │   │    ALB    │     │        │
+│   │   └─────┬─────┘    │            │   └─────┬─────┘     │        │
+│   │         │          │            │         │           │        │
+│   │  ┌──────┴──────┐   │            │     ┌───┴───┐      │        │
+│   │  │             │   │            │     │       │       │        │
+│   │ ┌▼──┐ ┌───┐ ┌───┐ │            │    ┌▼──┐           │        │
+│   │ │EC2│ │EC2│ │EC2│  │            │    │EC2│ (minimal) │        │
+│   │ └───┘ └───┘ └───┘  │            │    └───┘           │        │
+│   │ (Full capacity)    │            │  (Scaled down)     │        │
+│   │                     │            │                     │        │
+│   │     ┌───────┐      │  Continuous│     ┌───────┐      │        │
+│   │     │  RDS  │──────┼──Replication▶│  │  RDS  │      │        │
+│   │     │Primary│      │            │     │Replica│      │        │
+│   │     │(Large)│      │            │     │(Small)│      │        │
+│   │     └───────┘      │            │     └───────┘      │        │
+│   │                     │            │                     │        │
+│   └─────────────────────┘            └─────────────────────┘        │
+│                                                                      │
+│   DURING DISASTER:                                                   │
+│   1. Promote RDS replica to primary                                 │
+│   2. Scale up EC2 instances (Auto Scaling)                          │
+│   3. Scale up RDS instance                                          │
+│   4. Update Route 53 to point to DR region                          │
+│                                                                      │
+│   CHARACTERISTICS:                                                   │
+│   ✓ Always running (but scaled down)                                │
+│   ✓ RTO: Minutes                                                    │
+│   ✓ RPO: Seconds (continuous replication)                           │
+│   ✓ Can handle limited traffic before scale-up                      │
+│   ✓ Higher cost than pilot light                                    │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### What's Running in Warm Standby
+
+| Component | Status |
+|-----------|--------|
+| **Database replica** | ✅ Running (smaller instance) |
+| **Application servers** | ✅ Running (minimal capacity) |
+| **Load balancers** | ✅ Running |
+| **S3 replication** | ✅ Active |
+| **Auto Scaling** | ✅ Configured to scale up |
+
+---
+
+## Strategy 4: Multi-Site / Active-Active
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    MULTI-SITE (ACTIVE-ACTIVE)                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│                    ┌───────────────────┐                            │
+│                    │     Route 53      │                            │
+│                    │ (Latency/Weighted)│                            │
+│                    └─────────┬─────────┘                            │
+│                              │                                       │
+│              ┌───────────────┴───────────────┐                      │
+│              │                               │                       │
+│              ▼                               ▼                       │
+│   ┌─────────────────────┐      ┌─────────────────────┐             │
+│   │  REGION 1 (us-east) │      │  REGION 2 (us-west) │             │
+│   │                     │      │                     │             │
+│   │   ┌───────────┐    │      │   ┌───────────┐    │             │
+│   │   │    ALB    │    │      │   │    ALB    │    │             │
+│   │   └─────┬─────┘    │      │   └─────┬─────┘    │             │
+│   │         │          │      │         │          │             │
+│   │  ┌──────┴──────┐   │      │  ┌──────┴──────┐   │             │
+│   │ ┌▼──┐ ┌───┐ ┌───┐ │      │ ┌▼──┐ ┌───┐ ┌───┐ │             │
+│   │ │EC2│ │EC2│ │EC2│  │      │ │EC2│ │EC2│ │EC2│  │             │
+│   │ └───┘ └───┘ └───┘  │      │ └───┘ └───┘ └───┘  │             │
+│   │ (Full capacity)    │      │ (Full capacity)    │             │
+│   │                     │      │                     │             │
+│   │     ┌───────┐      │      │     ┌───────┐      │             │
+│   │     │Aurora │◀─────┼──────┼────▶│Aurora │      │             │
+│   │     │Global │ Bi-directional   │Global │      │             │
+│   │     │Primary│ Replication      │Secondary     │             │
+│   │     └───────┘      │      │     └───────┘      │             │
+│   │                     │      │                     │             │
+│   │     ┌───────┐      │      │     ┌───────┐      │             │
+│   │     │DynamoDB│◀────┼──────┼────▶│DynamoDB│     │             │
+│   │     │Global │ Global Tables    │Global │      │             │
+│   │     │Table  │      │      │     │Table  │      │             │
+│   │     └───────┘      │      │     └───────┘      │             │
+│   │                     │      │                     │             │
+│   └─────────────────────┘      └─────────────────────┘             │
+│                                                                      │
+│   CHARACTERISTICS:                                                   │
+│   ✓ Both regions active, serving traffic                            │
+│   ✓ RTO: Real-time (automatic failover)                             │
+│   ✓ RPO: Near zero                                                  │
+│   ✓ Highest cost                                                    │
+│   ✓ Best for mission-critical applications                          │
+│                                                                      │
+│   REQUIRES:                                                          │
+│   • Aurora Global Database or DynamoDB Global Tables                 │
+│   • Route 53 health checks and failover                             │
+│   • Data consistency strategy                                       │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## DR Strategy Decision Matrix
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    DR STRATEGY SELECTION                             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   Requirements:                                                      │
+│                                                                      │
+│   RTO: Hours + RPO: Hours + Budget: Low                             │
+│        └──▶ BACKUP AND RESTORE                                      │
+│                                                                      │
+│   RTO: 10-30 min + RPO: Minutes + Budget: Medium                    │
+│        └──▶ PILOT LIGHT                                             │
+│                                                                      │
+│   RTO: Minutes + RPO: Seconds + Budget: High                        │
+│        └──▶ WARM STANDBY                                            │
+│                                                                      │
+│   RTO: Near-zero + RPO: Near-zero + Budget: Highest                 │
+│        └──▶ MULTI-SITE ACTIVE-ACTIVE                                │
+│                                                                      │
+│                                                                      │
+│   COST vs RECOVERY TIME                                              │
+│                                                                      │
+│   Cost                                                               │
+│    ▲                                                                 │
+│    │                                    ●  Multi-Site               │
+│    │                                                                 │
+│    │                          ●  Warm Standby                       │
+│    │                                                                 │
+│    │               ●  Pilot Light                                   │
+│    │                                                                 │
+│    │   ●  Backup/Restore                                            │
+│    │                                                                 │
+│    └─────────────────────────────────────────────────────▶ RTO      │
+│         Hours              Minutes           Seconds                 │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+# 💾 AWS BACKUP
+
+## Definition
+**AWS Backup** is a fully managed backup service that centralizes and automates data protection across AWS services.
+
+## Supported Services
+
+| Service | Backup Type |
+|---------|-------------|
+| **EC2** | AMI-based |
+| **EBS** | Snapshots |
+| **RDS** | Snapshots |
+| **Aurora** | Snapshots |
+| **DynamoDB** | Full backups |
+| **EFS** | Incremental |
+| **FSx** | Snapshots |
+| **Storage Gateway** | Snapshots |
+| **DocumentDB** | Snapshots |
+| **Neptune** | Snapshots |
+| **S3** | Object backup |
+| **VMware** | Full/incremental |
+
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Backup Plans** | Automated schedules and lifecycle rules |
+| **Backup Vault** | Encrypted storage for backups |
+| **Cross-Region** | Copy backups to other regions |
+| **Cross-Account** | Backup to different AWS account |
+| **Vault Lock** | WORM protection (immutable) |
+| **Lifecycle Policies** | Transition to cold storage |
+| **Tags** | Backup based on resource tags |
+
+## Backup Plan Components
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    AWS BACKUP PLAN                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   ┌─────────────────────────────────────────────────────────────┐   │
+│   │                    BACKUP PLAN                               │   │
+│   │                                                              │   │
+│   │   ┌─────────────────────────────────────────────────────┐   │   │
+│   │   │                    BACKUP RULE 1                     │   │   │
+│   │   │   Frequency: Daily at 2:00 AM                       │   │   │
+│   │   │   Retention: 35 days                                │   │   │
+│   │   │   Transition to Cold: After 7 days                  │   │   │
+│   │   │   Copy to Region: us-west-2                         │   │   │
+│   │   └─────────────────────────────────────────────────────┘   │   │
+│   │                                                              │   │
+│   │   ┌─────────────────────────────────────────────────────┐   │   │
+│   │   │                    BACKUP RULE 2                     │   │   │
+│   │   │   Frequency: Monthly on 1st day                     │   │   │
+│   │   │   Retention: 1 year                                 │   │   │
+│   │   │   Transition to Cold: After 30 days                 │   │   │
+│   │   │   Copy to Account: 111122223333                     │   │   │
+│   │   └─────────────────────────────────────────────────────┘   │   │
+│   │                                                              │   │
+│   │   RESOURCE ASSIGNMENT                                       │   │
+│   │   • By tag: Environment=Production                          │   │
+│   │   • By resource type: All RDS databases                     │   │
+│   │   • By resource ID: Specific resources                      │   │
+│   │                                                              │   │
+│   └─────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+│                              │                                       │
+│                              ▼                                       │
+│   ┌─────────────────────────────────────────────────────────────┐   │
+│   │                    BACKUP VAULT                              │   │
+│   │   • Encrypted with KMS                                       │   │
+│   │   • Vault Lock for WORM (optional)                          │   │
+│   │   • Access policy for cross-account                         │   │
+│   └─────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+## Exam Heuristics
+
+| Keyword/Scenario | Answer |
+|------------------|--------|
+| Centralized backup management | **AWS Backup** |
+| Backup multiple AWS services | **AWS Backup** |
+| Cross-region backup | **AWS Backup with copy rule** |
+| Cross-account backup | **AWS Backup with cross-account** |
+| Immutable backups | **AWS Backup Vault Lock** |
+| Compliance backup retention | **AWS Backup lifecycle policies** |
+| Tag-based backup | **AWS Backup resource assignment** |
+
+---
+
+# 🔄 SERVICE-SPECIFIC DR & REPLICATION
+
+## RDS Disaster Recovery
+
+### Multi-AZ (High Availability)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    RDS MULTI-AZ                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   Region: us-east-1                                                  │
+│                                                                      │
+│   ┌───────────────────────┐    ┌───────────────────────┐           │
+│   │      AZ-a             │    │      AZ-b             │           │
+│   │                       │    │                       │           │
+│   │   ┌─────────────┐    │    │   ┌─────────────┐    │           │
+│   │   │    RDS      │    │Sync│   │    RDS      │    │           │
+│   │   │   PRIMARY   │────┼────┼──▶│   STANDBY   │    │           │
+│   │   │             │    │    │   │             │    │           │
+│   │   └─────────────┘    │    │   └─────────────┘    │           │
+│   │                       │    │                       │           │
+│   └───────────────────────┘    └───────────────────────┘           │
+│                                                                      │
+│   CHARACTERISTICS:                                                   │
+│   • Synchronous replication                                         │
+│   • Automatic failover (60-120 seconds)                             │
+│   • Same region only                                                │
+│   • Standby cannot be read                                          │
+│   • Single DNS endpoint (failover automatic)                        │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Read Replicas (Scalability + Cross-Region DR)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    RDS READ REPLICAS                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   Region: us-east-1             Region: eu-west-1                   │
+│                                                                      │
+│   ┌─────────────────┐          ┌─────────────────┐                  │
+│   │                 │   Async  │                 │                  │
+│   │  RDS PRIMARY    │─────────▶│  READ REPLICA   │                  │
+│   │                 │          │                 │                  │
+│   └─────────────────┘          └─────────────────┘                  │
+│          │                                                           │
+│          │ Async                                                     │
+│          ▼                                                           │
+│   ┌─────────────────┐                                               │
+│   │  READ REPLICA   │                                               │
+│   │  (same region)  │                                               │
+│   └─────────────────┘                                               │
+│                                                                      │
+│   CHARACTERISTICS:                                                   │
+│   • Asynchronous replication                                        │
+│   • Can be read (offload read traffic)                              │
+│   • Can be promoted to standalone (manual)                          │
+│   • Cross-region supported                                          │
+│   • Up to 5 replicas per primary                                    │
+│   • Replicas can have replicas (chain)                              │
+│                                                                      │
+│   FOR DR: Create cross-region replica, promote if primary fails     │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### RDS DR Comparison
+
+| Feature | Multi-AZ | Read Replica |
+|---------|----------|--------------|
+| **Purpose** | High Availability | Read scaling, DR |
+| **Replication** | Synchronous | Asynchronous |
+| **Regions** | Same region | Cross-region |
+| **Failover** | Automatic | Manual (promote) |
+| **Read Traffic** | No | Yes |
+| **Number** | 1 standby | Up to 5 |
+
+---
+
+## Aurora Disaster Recovery
+
+### Aurora Replicas (Same Region)
+
+| Feature | Value |
+|---------|-------|
+| **Replicas** | Up to 15 |
+| **Failover** | Automatic (<30 seconds) |
+| **Replication** | Shared storage (synchronous) |
+| **Read Traffic** | Yes |
+
+### Aurora Global Database (Cross-Region)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    AURORA GLOBAL DATABASE                            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   PRIMARY REGION                   SECONDARY REGION                  │
+│   us-east-1                        eu-west-1                         │
+│                                                                      │
+│   ┌─────────────────┐             ┌─────────────────┐               │
+│   │  Aurora Cluster │   <1 sec   │  Aurora Cluster │               │
+│   │    PRIMARY      │────────────▶│   SECONDARY     │               │
+│   │                 │  Async Rep  │                 │               │
+│   │ ┌────┐ ┌────┐  │             │ ┌────┐ ┌────┐  │               │
+│   │ │ R/W│ │Read│  │             │ │Read│ │Read│  │               │
+│   │ └────┘ └────┘  │             │ └────┘ └────┘  │               │
+│   └─────────────────┘             └─────────────────┘               │
+│                                                                      │
+│   CHARACTERISTICS:                                                   │
+│   • Replication lag < 1 second (typically)                          │
+│   • Up to 5 secondary regions                                       │
+│   • Promotion to primary < 1 minute                                 │
+│   • Read replicas in secondary regions                              │
+│   • RPO: ~1 second                                                  │
+│   • RTO: < 1 minute                                                 │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## DynamoDB Disaster Recovery
+
+### Point-in-Time Recovery (PITR)
+
+| Feature | Value |
+|---------|-------|
+| **Recovery Window** | Last 35 days |
+| **Granularity** | Any second |
+| **Status** | Enable per table |
+| **Use Case** | Accidental deletion, corruption |
+
+### Global Tables
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    DYNAMODB GLOBAL TABLES                            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   Region: us-east-1              Region: ap-southeast-1              │
+│                                                                      │
+│   ┌─────────────────┐            ┌─────────────────┐                │
+│   │                 │  Bi-dir    │                 │                │
+│   │    DynamoDB     │◀──────────▶│    DynamoDB     │                │
+│   │     Table       │  Async     │     Table       │                │
+│   │                 │ Replication│                 │                │
+│   │   Read/Write    │            │   Read/Write    │                │
+│   └─────────────────┘            └─────────────────┘                │
+│                                                                      │
+│   CHARACTERISTICS:                                                   │
+│   • Active-Active (read/write in all regions)                       │
+│   • Eventually consistent (typically < 1 second)                    │
+│   • Automatic conflict resolution (last writer wins)                │
+│   • No application changes needed                                   │
+│   • Requires DynamoDB Streams enabled                               │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## S3 Disaster Recovery
+
+### Cross-Region Replication (CRR)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    S3 CROSS-REGION REPLICATION                       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   Source Bucket                  Destination Bucket                  │
+│   us-east-1                      eu-west-1                           │
+│                                                                      │
+│   ┌─────────────────┐            ┌─────────────────┐                │
+│   │                 │  Async     │                 │                │
+│   │   S3 Bucket     │───────────▶│   S3 Bucket     │                │
+│   │                 │            │                 │                │
+│   │ • Versioning ON │            │ • Versioning ON │                │
+│   │                 │            │                 │                │
+│   └─────────────────┘            └─────────────────┘                │
+│                                                                      │
+│   REQUIREMENTS:                                                      │
+│   • Versioning enabled (both buckets)                               │
+│   • Different regions (CRR) or same region (SRR)                    │
+│   • IAM role for S3 replication                                     │
+│                                                                      │
+│   OPTIONS:                                                           │
+│   • Replicate entire bucket or by prefix/tag                        │
+│   • Replicate delete markers (optional)                             │
+│   • Change storage class at destination                             │
+│   • Change ownership to destination account                         │
+│   • Replicate encrypted objects (SSE-S3, SSE-KMS)                   │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### S3 Replication Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| **CRR** | Cross-Region Replication | DR, compliance, latency |
+| **SRR** | Same-Region Replication | Log aggregation, test/prod sync |
+
+---
+
+## EBS Disaster Recovery
+
+### EBS Snapshots
+
+| Feature | Value |
+|---------|-------|
+| **Storage** | S3 (regional) |
+| **Type** | Incremental |
+| **Cross-Region** | Copy manually or automate |
+| **Encryption** | Can change during copy |
+| **Fast Snapshot Restore** | Eliminates latency penalty |
+
+### Data Lifecycle Manager (DLM)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    EBS DATA LIFECYCLE MANAGER                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   DLM Policy:                                                        │
+│   ┌─────────────────────────────────────────────────────────────┐   │
+│   │                                                              │   │
+│   │   Target: EBS Volumes with tag "Backup=true"                │   │
+│   │                                                              │   │
+│   │   Schedule: Every 12 hours                                   │   │
+│   │   Retention: Keep 7 snapshots                                │   │
+│   │                                                              │   │
+│   │   Cross-Region Copy: us-west-2                              │   │
+│   │   Cross-Region Retention: Keep 3 copies                      │   │
+│   │                                                              │   │
+│   │   Fast Snapshot Restore: Enabled in us-east-1a              │   │
+│   │                                                              │   │
+│   └─────────────────────────────────────────────────────────────┘   │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+# ✅ DISASTER RECOVERY EXAM HEURISTICS
+
+| Keyword/Scenario | Answer |
+|------------------|--------|
+| Lowest cost DR | **Backup and Restore** |
+| RTO hours, RPO hours | **Backup and Restore** |
+| RTO 10-30 minutes, RPO minutes | **Pilot Light** |
+| RTO minutes, RPO seconds | **Warm Standby** |
+| RTO/RPO near-zero | **Multi-Site Active-Active** |
+| Cross-region RDS DR | **Read Replica (cross-region)** |
+| Cross-region Aurora DR | **Aurora Global Database** |
+| Cross-region DynamoDB | **DynamoDB Global Tables** |
+| Cross-region S3 | **S3 Cross-Region Replication** |
+| RDS automatic failover | **RDS Multi-AZ** |
+| Aurora automatic failover | **Aurora Replicas** |
+| Centralized backup | **AWS Backup** |
+| Immutable backup | **AWS Backup Vault Lock** |
+| Backup automation | **AWS Backup or DLM** |
+| EBS snapshot automation | **Data Lifecycle Manager** |
+| Route traffic to healthy region | **Route 53 Health Checks + Failover** |
+
+---
+
+*Continued in Part 4: Multi-Tier Architectures & Exam Scenarios*
+
+---
+
+*Last Updated: December 2025*
+*Exam Version: SAA-C03*
+*Domain: Design Resilient Architectures (26%)*
