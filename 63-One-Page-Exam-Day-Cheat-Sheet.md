@@ -1,9 +1,5 @@
 # AWS SAA-C03: ONE-PAGE EXAM DAY CHEAT SHEET
 
-**Print this. Memorize this. Pass the exam. 🚀**
-
----
-
 ## ⚡ INSTANT SERVICE SELECTION (ALL Services with Constraints)
 
 ### 🖥️ COMPUTE (11 Services)
@@ -803,4 +799,5 @@ Multi-Site: Real-time
 2. **When in doubt:** Choose serverless option
 3. **Read carefully:** Keywords matter
 4. **Eliminate first:** Often easier than finding right answer
+
 
