@@ -1,8 +1,6 @@
-# AWS SAA-C03: MASTER HEURISTICS - Complete Quick Decision Guide
+# AWS SAA-C03: Complete Quick Service Decision Guide
 
-## 🎯 Ultimate Quick Reference: All Services, All Domains, All Decision Patterns
-
-# COMPUTE - Quick Decision Heuristics
+# COMPUTE 
 
 ## ⚡ EC2 vs Lambda vs Container vs Batch - Master Decision
 
@@ -898,5 +896,6 @@ Example: Lambda might cost more than EC2 for sustained high traffic
 18. **Container orchestration** → ECS or EKS
 19. **Serverless containers** → Fargate
 20. **Multi-AZ HA** → Multi-AZ RDS/Aurora + ALB + Auto Scaling
+
 
 
