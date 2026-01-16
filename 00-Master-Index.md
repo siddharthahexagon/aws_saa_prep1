@@ -1446,6 +1446,144 @@ You've covered:
 
 ---
 
+## 🎯 MASTER HEURISTICS & QUICK REFERENCE FILES (NEW - EXAM CRITICAL)
+
+### 60. [Master Heuristics - All Services Quick Reference](60-Master-Heuristics-All-Services-Quick-Reference.md)
+**The Ultimate Quick Decision Guide**
+
+**Sections Covered:**
+- Compute Decision Heuristics (EC2 vs Lambda vs Containers vs Batch)
+- Storage Decision Heuristics (S3 classes, EBS types, File systems)
+- Database Decision Heuristics (RDS vs Aurora vs DynamoDB vs Redshift)
+- Networking Decision Heuristics (VPC, Load Balancers, Route 53, Hybrid)
+- Security Decision Heuristics (IAM, Encryption, Threat Detection)
+- Monitoring & Management Heuristics
+- Integration & Messaging Heuristics (SQS vs SNS vs EventBridge)
+- Analytics & Big Data Heuristics
+- Migration Service Heuristics
+- Domain-Specific Patterns (All 4 Exam Domains)
+
+**Features:**
+- ✅ IF-THEN instant decision rules for every service
+- ✅ Keyword → Service mapping tables
+- ✅ Service comparison matrices (Multi-AZ vs Multi-Region vs Read Replica)
+- ✅ Critical exam patterns memorization
+- ✅ Common exam traps and how to avoid them
+- ✅ One-page summary for exam day
+- ✅ Confidence checklist before exam
+
+**Perfect For:** Lightning-fast service selection, pattern recognition, last-minute review
+
+---
+
+### 61. [Exam Day Lightning Patterns](61-Exam-Day-Lightning-Patterns.md)
+**2-Second Decision Guide for Rapid Pattern Recognition**
+
+**Sections Covered:**
+- Part 1: IF YOU SEE THIS WORD → CHOOSE THIS SERVICE (instant recognition)
+- Part 2: IF-THEN Instant Decision Rules (use first match)
+- Part 3: Domain-Specific Instant Patterns
+- Part 4: Critical Comparison Patterns (with tables)
+- Part 5: Lightning Decision Trees (3-4 questions max)
+- Part 6: Exam Trap Avoidance (trap detection keywords)
+- Part 7: 60-Second Final Review (top 15 services, top 10 heuristics)
+
+**Features:**
+- ✅ Keyword tables with 95%+ confidence levels
+- ✅ Use-first-match decision rules
+- ✅ Visual decision trees
+- ✅ Trap detection keywords
+- ✅ Panic button protocol
+- ✅ Last-minute memory dump template
+- ✅ Final confidence check quiz
+
+**Perfect For:** Morning of exam, rapid decision-making, time pressure scenarios
+
+---
+
+### 62. [Complete Service Catalog with Heuristics](62-Complete-Service-Catalog-Heuristics.md)
+**Every Single AWS Service with "Use When" and "Don't Use When"**
+
+**Comprehensive Coverage:**
+- **Compute Services:** 11 services (EC2, Lambda, ECS, EKS, Fargate, Batch, Beanstalk, Lightsail, Outposts, Wavelength, Local Zones)
+- **Storage Services:** 13 services (S3 + classes, EBS + types, EFS, FSx variants, Storage Gateway, Snow Family, DataSync, Backup)
+- **Database Services:** 12 services (RDS, Aurora, DynamoDB, ElastiCache, DAX, Redshift, DocumentDB, Neptune, Timestream, QLDB, Keyspaces, MemoryDB)
+- **Networking Services:** 21 services (VPC components, Load Balancers, Route 53, CloudFront, Global Accelerator, Direct Connect, VPN, Transit Gateway, etc.)
+- **Security Services:** 23 services (IAM, Organizations, Cognito, Directory Service, KMS, CloudHSM, Secrets Manager, WAF, Shield, GuardDuty, Inspector, Macie, Detective, Security Hub, Config, CloudTrail, etc.)
+- **Monitoring & Management:** 12 services (CloudWatch suite, CloudFormation, CDK, SAM, Systems Manager, Trusted Advisor, Cost tools, etc.)
+- **Integration & Messaging:** 7 services (SQS, SNS, EventBridge, Step Functions, SWF, AppSync, Amazon MQ)
+- **Analytics & Big Data:** 11 services (Kinesis family, MSK, Athena, EMR, Glue, QuickSight, Data Pipeline, OpenSearch)
+- **Migration Services:** 6 services (MGN, DMS, SCT, Discovery Service, Migration Hub, Transfer Family)
+- **Application Services:** 11 services (SES, Pinpoint, SageMaker, Rekognition, ML services, IoT, etc.)
+
+**Total: 127+ services covered**
+
+**For Each Service:**
+- ✅ What it is (concise definition)
+- ✅ Use When (specific scenarios with checkmarks)
+- ✅ Don't Use When (anti-patterns with X marks)
+- ✅ Exam Keywords (trigger words that indicate this service)
+- ✅ Critical limits and features
+- ✅ Service variants and types
+
+**Perfect For:** Complete reference, understanding anti-patterns, keyword recognition
+
+---
+
+## 📖 HOW TO USE THESE THREE NEW FILES
+
+### Study Schedule (1 Week Before Exam):
+
+**Days 7-5:** 
+- Deep dive into **File 62 (Complete Service Catalog)** 
+- Learn every service's "use when" and "don't use when"
+- Understand anti-patterns
+
+**Days 4-2:**
+- Study **File 60 (Master Heuristics)**
+- Memorize keyword mappings
+- Practice with decision tables
+- Review domain-specific patterns
+
+**Day 1 (Day Before Exam):**
+- Focus on **File 61 (Lightning Patterns)**
+- Memorize trap detection keywords
+- Review 60-second summary
+- Take confidence check quiz
+
+**Exam Morning:**
+- Quick scan of **File 61**
+- Review memory dump template
+- Mental rehearsal of top 10 heuristics
+
+---
+
+## 🎯 RECOMMENDED STUDY PATH
+
+### For First-Time Learners:
+1. Read Files 1-9 (Core Services)
+2. Review Files 10-17 (Decision Trees)
+3. Study Files 18-39 (Scenarios & Patterns)
+4. Intensive review of Files 40-49 (Cheatsheets)
+5. Domain-focused study: Files 50-56 (Security & Resilience)
+6. Final preparation: Files 60-62 (Master Heuristics)
+
+### For Review/Retake:
+1. Start with Files 60-62 (Master Heuristics)
+2. Identify weak areas
+3. Deep dive into specific domain files (50-56)
+4. Practice with Files 18 (Exam Scenarios)
+5. Final review with File 61 (Lightning Patterns)
+
+### One Week Cram (Not Recommended but Possible):
+- **Day 1-2:** Files 40-49 (Cheatsheets) + 35-36 (Service definitions)
+- **Day 3-4:** Files 60 & 62 (Master Heuristics + Complete Catalog)
+- **Day 5:** Files 50-56 (Security & Resilience domains)
+- **Day 6:** File 61 (Lightning Patterns) + practice exams
+- **Day 7:** Review File 61, rest, prepare mentally
+
+---
+
 *Last Updated: December 2025*
 *AWS Exam Version: SAA-C03*
 *GitHub Copilot Exam: GH-300*
