@@ -1024,8 +1024,1066 @@ AWS Resources → CloudWatch (metrics) → Dashboard
 - Does it meet ALL requirements?
 - Is it the SIMPLEST solution?
 
+# AWS Architecture Patterns - Quick Reference Guide
+## 1️⃣ COMPUTE SERVICES - QUICK DECISIONS
+
+### **EC2 (Elastic Compute Cloud)**
+
+#### Instance Type Selection Heuristics:
+| Keyword in Question | Instance Family | Quick Reason |
+|---------------------|----------------|--------------|
+| "General purpose" / "Balanced" | **T3/M6g** | Balanced CPU/Memory |
+| "Compute intensive" / "High CPU" | **C6g/C6i** | Compute optimized |
+| "Memory intensive" / "In-memory DB" | **R6g/R6i** | Memory optimized |
+| "Storage intensive" / "Big Data" | **I3/D3** | Storage optimized |
+| "GPU" / "ML training" | **P4/G5** | GPU instances |
+| "Burstable" / "Variable load" | **T3/T3a** | Burstable performance |
+
+#### Pricing Heuristics:
+| Requirement | Choice | Savings |
+|-------------|--------|---------|
+| **Steady-state, predictable** | Reserved Instances (1-3yr) | 40-60% |
+| **Flexible compute commitment** | Savings Plans | 40-60% |
+| **Fault-tolerant, flexible time** | Spot Instances | Up to 90% |
+| **Short-term, unpredictable** | On-Demand | No commitment |
+| **Host compliance requirements** | Dedicated Hosts | License control |
+| **Isolated instance** | Dedicated Instances | Physical isolation |
+
+#### Storage Heuristics:
+| Requirement | EBS Type | When to Use |
+|-------------|----------|-------------|
+| **"Highest IOPS"** | io2 Block Express | >64,000 IOPS |
+| **"High performance"** | io2/io1 | Databases, 16K IOPS+ |
+| **"General SSD"** | gp3 | Most workloads (default) |
+| **"Throughput optimized"** | st1 | Big Data, log processing |
+| **"Cold storage"** | sc1 | Infrequent access |
+| **"Fastest storage"** | Instance Store | Ephemeral, buffer/cache |
+
+#### Placement Group Heuristics:
+| Requirement | Placement Group | Use Case |
+|-------------|----------------|----------|
+| **"Lowest latency"** | Cluster | HPC, tightly coupled |
+| **"High availability"** | Spread | Critical apps, max 7/AZ |
+| **"Balanced"** | Partition | Distributed databases |
+
 ---
 
-**Good luck on your exam!** 🎉
+### **Lambda**
 
-*50 Solution Patterns covering 90%+ of SAA-C03 architecture questions*
+#### Quick Decision Rules:
+| Scenario | Decision |
+|----------|----------|
+| "Serverless compute" | ✅ Lambda |
+| "Event-driven" | ✅ Lambda |
+| "Runs > 15 minutes" | ❌ Use Fargate/EC2 |
+| "Needs persistent storage" | Use EFS with Lambda |
+| "Cold start issue" | Provisioned Concurrency |
+| "Complex workflow" | Lambda + Step Functions |
+
+#### Lambda Triggers Heuristics:
+| Event Source | Use Case |
+|--------------|----------|
+| **API Gateway** | REST/HTTP APIs |
+| **S3** | Object creation/deletion |
+| **DynamoDB Streams** | Change data capture |
+| **SQS** | Queue processing |
+| **SNS** | Event notifications |
+| **EventBridge** | Scheduled/cross-service events |
+| **Kinesis** | Stream processing |
+| **ALB** | HTTP(S) requests |
+
+---
+
+### **ECS/EKS (Containers)**
+
+#### Container Service Selection:
+| Requirement | Service | Reason |
+|-------------|---------|--------|
+| **"Docker containers"** | ECS | AWS-native, simpler |
+| **"Kubernetes"** | EKS | K8s standard, portable |
+| **"No server management"** | Fargate | Serverless containers |
+| **"EC2 control"** | ECS/EKS on EC2 | Instance-level control |
+| **"Batch processing"** | AWS Batch | Job scheduling |
+
+#### Launch Type Heuristics:
+| Scenario | Launch Type |
+|----------|-------------|
+| **"Simplest, serverless"** | Fargate |
+| **"Cost optimization, control"** | EC2 |
+| **"Spot instances"** | EC2 with Spot |
+| **"GPU workloads"** | EC2 with GPU instances |
+
+---
+
+### **Elastic Beanstalk**
+
+#### Quick Heuristic:
+- **"Quick deployment"** + **"No infrastructure management"** = Elastic Beanstalk
+- Supports: Java, .NET, Node.js, Python, Ruby, Go, PHP, Docker
+- ✅ Use when developer wants to focus on code, not infrastructure
+- ❌ Don't use when you need full infrastructure control
+
+---
+
+### **Lightsail**
+
+#### Quick Heuristic:
+- **"Simple web app"** + **"Predictable pricing"** + **"Small scale"** = Lightsail
+- ✅ Simplified VPS alternative
+- ❌ Not for complex architectures
+
+---
+
+## 2️⃣ STORAGE SERVICES - QUICK DECISIONS
+
+### **S3 (Simple Storage Service)**
+
+#### Storage Class Selection (CRITICAL EXAM TOPIC):
+| Access Pattern | Storage Class | Retrieval | Cost |
+|----------------|--------------|-----------|------|
+| **Frequent (>1/month)** | S3 Standard | Instant | Highest |
+| **Infrequent (>30 days)** | S3 Standard-IA | Instant | Medium |
+| **One Zone, non-critical** | S3 One Zone-IA | Instant | Lower |
+| **Archive (>90 days)** | Glacier Flexible | Minutes-hours | Low |
+| **Deep archive (>180 days)** | Glacier Deep Archive | 12-48 hours | Lowest |
+| **Unknown/changing pattern** | S3 Intelligent-Tiering | Automatic | Optimized |
+
+#### S3 Feature Heuristics:
+| Requirement | Feature | Quick Tip |
+|-------------|---------|-----------|
+| **"Version control"** | Versioning | Cannot be disabled, only suspended |
+| **"Accidental deletion"** | Versioning + MFA Delete | Protects from permanent delete |
+| **"Cross-region copy"** | Cross-Region Replication (CRR) | Automatic async copy |
+| **"Same-region copy"** | Same-Region Replication (SRR) | Compliance, aggregation |
+| **"Lifecycle management"** | Lifecycle Policies | Auto-transition/expire objects |
+| **"Event notification"** | S3 Event Notifications | SNS/SQS/Lambda |
+| **"Query data in place"** | S3 Select | Filter at S3 level |
+| **"Fast uploads globally"** | Transfer Acceleration | CloudFront edge locations |
+| **"Large file uploads"** | Multipart Upload | Files >100 MB |
+| **"Block all public"** | S3 Block Public Access | Account/bucket level |
+| **"Encryption at rest"** | SSE-S3/SSE-KMS/SSE-C | Default: SSE-S3 |
+| **"Access logging"** | Server Access Logging | Audit S3 access |
+| **"Object locking"** | S3 Object Lock | WORM compliance |
+
+#### S3 Performance Heuristics:
+| Issue | Solution |
+|-------|----------|
+| **"Slow uploads"** | Multipart Upload + Transfer Acceleration |
+| **"High request rate"** | Use random prefix (not sequential) |
+| **"Large scans"** | S3 Select or Athena |
+
+---
+
+### **EBS (Elastic Block Store)**
+
+#### Already covered in EC2 section above ✅
+
+#### Snapshot Heuristics:
+| Requirement | Action |
+|-------------|--------|
+| **"Backup EBS"** | Create snapshots (stored in S3) |
+| **"Copy to another region"** | Copy snapshot to target region |
+| **"Share snapshot"** | Modify snapshot permissions |
+| **"Encrypt unencrypted"** | Copy snapshot with encryption |
+| **"Fast restore"** | Fast Snapshot Restore (FSR) |
+
+---
+
+### **EFS (Elastic File System)**
+
+#### Quick Heuristics:
+| Scenario | Decision |
+|----------|----------|
+| **"Shared file system"** + **"Linux"** | EFS |
+| **"NFS protocol"** | EFS |
+| **"Multi-AZ by default"** | EFS (automatic) |
+| **"Petabyte scale"** | EFS |
+| **"Cost optimization"** | EFS Infrequent Access (IA) |
+
+#### Storage Class:
+| Access Pattern | Class |
+|----------------|-------|
+| **Regular access** | EFS Standard |
+| **Infrequent access (>30 days)** | EFS IA (auto-transition) |
+
+#### Performance Mode:
+| Workload | Mode |
+|----------|------|
+| **General purpose** | General Purpose |
+| **High throughput, big data** | Max I/O |
+
+---
+
+### **FSx**
+
+#### FSx Service Selection:
+| Requirement | FSx Type | Use Case |
+|-------------|----------|----------|
+| **"Windows file server"** | FSx for Windows File Server | SMB, Active Directory |
+| **"High-performance computing"** | FSx for Lustre | ML, HPC, video processing |
+| **"NetApp ONTAP"** | FSx for NetApp ONTAP | Multi-protocol (NFS, SMB) |
+| **"OpenZFS"** | FSx for OpenZFS | Linux workloads |
+
+---
+
+### **Storage Gateway**
+
+#### Gateway Type Selection:
+| Requirement | Gateway Type | Use Case |
+|-------------|-------------|----------|
+| **"Backup on-prem to S3"** | File Gateway | NFS/SMB to S3 |
+| **"Block storage, iSCSI"** | Volume Gateway | Virtual tape library |
+| **"Tape backup to cloud"** | Tape Gateway | Replace physical tapes |
+
+---
+
+## 3️⃣ DATABASE SERVICES - QUICK DECISIONS
+
+### **RDS (Relational Database Service)**
+
+#### Engine Selection:
+| Requirement | Engine | Reason |
+|-------------|--------|--------|
+| **"MySQL compatible, 5x performance"** | Aurora MySQL | AWS-optimized |
+| **"PostgreSQL compatible, 3x performance"** | Aurora PostgreSQL | AWS-optimized |
+| **"Open source, popular"** | MySQL/PostgreSQL | Community standard |
+| **"Microsoft SQL Server"** | SQL Server | Windows ecosystem |
+| **"Oracle"** | Oracle | Enterprise apps |
+| **"IBM"** | DB2 | Legacy IBM systems |
+| **"MariaDB"** | MariaDB | MySQL fork |
+
+#### High Availability Heuristics:
+| Requirement | Solution | RTO/RPO |
+|-------------|----------|---------|
+| **"High availability"** | Multi-AZ | Minutes/Zero |
+| **"Read scaling"** | Read Replicas | N/A (async) |
+| **"Disaster recovery"** | Cross-Region Read Replica | Manual promotion |
+| **"Global database"** | Aurora Global Database | <1 second lag |
+
+#### Backup Heuristics:
+| Feature | Detail |
+|---------|--------|
+| **Automated Backups** | 1-35 days retention |
+| **Manual Snapshots** | Until you delete |
+| **Point-in-Time Recovery** | Any second within retention |
+
+---
+
+### **DynamoDB**
+
+#### When to Choose DynamoDB:
+| Scenario | Why DynamoDB |
+|----------|--------------|
+| **"Serverless database"** | Fully managed, no servers |
+| **"Microsecond latency"** | Single-digit millisecond |
+| **"Key-value"** / **"Document"** | NoSQL design |
+| **"Massive scale"** | Unlimited storage |
+| **"Event-driven"** | DynamoDB Streams |
+
+#### Capacity Mode:
+| Requirement | Mode | Use Case |
+|-------------|------|----------|
+| **"Predictable traffic"** | Provisioned | Cost-effective for steady load |
+| **"Unpredictable/spiky"** | On-Demand | Pay per request |
+
+#### Performance Optimizations:
+| Issue | Solution |
+|-------|----------|
+| **"Cache reads"** | DAX (DynamoDB Accelerator) |
+| **"Hot partition"** | Better partition key design |
+| **"Global access"** | Global Tables (multi-region) |
+| **"Change tracking"** | DynamoDB Streams |
+
+---
+
+### **ElastiCache**
+
+#### Engine Selection:
+| Requirement | Engine | Reason |
+|-------------|--------|--------|
+| **"Simple caching"** | Memcached | Simple, multi-threaded |
+| **"Advanced features"** | Redis | Persistence, pub/sub, sorted sets |
+| **"Persistence"** | Redis | Snapshots, AOF |
+| **"High availability"** | Redis (Multi-AZ) | Automatic failover |
+| **"Replication"** | Redis | Read replicas |
+
+---
+
+### **Redshift**
+
+#### Quick Heuristics:
+| Scenario | Decision |
+|----------|----------|
+| **"Data warehouse"** | Redshift |
+| **"OLAP" / "Analytics"** | Redshift |
+| **"Petabyte-scale analytics"** | Redshift |
+| **"SQL on data warehouse"** | Redshift |
+| **"Columnar storage"** | Redshift |
+
+#### Features:
+- **Redshift Spectrum**: Query S3 data directly
+- **Concurrency Scaling**: Handle burst queries
+- **RA3 nodes**: Compute/storage separation
+
+---
+
+### **Other Database Services**
+
+| Service | Use Case | Quick Heuristic |
+|---------|----------|-----------------|
+| **Neptune** | Graph database | Social networks, fraud detection |
+| **DocumentDB** | MongoDB-compatible | Document store, MongoDB migration |
+| **Timestream** | Time-series data | IoT, metrics, logs |
+| **QLDB** | Immutable ledger | Audit trail, blockchain-like |
+| **Keyspaces** | Cassandra-compatible | Wide-column NoSQL |
+
+---
+
+## 4️⃣ NETWORKING - QUICK DECISIONS
+
+### **VPC (Virtual Private Cloud)**
+
+#### Subnet Design Heuristics:
+| Type | Use | Route |
+|------|-----|-------|
+| **Public Subnet** | Resources need internet | Route to IGW |
+| **Private Subnet** | Backend, databases | Route to NAT |
+| **Isolated Subnet** | No internet at all | Local routes only |
+
+#### Internet Access:
+| Scenario | Component |
+|----------|-----------|
+| **"EC2 needs internet (public)"** | Internet Gateway (IGW) |
+| **"Private EC2 needs outbound internet"** | NAT Gateway/Instance |
+| **"Private subnet, AZ-specific"** | NAT Gateway (per AZ) |
+| **"Cost-effective NAT"** | NAT Instance (manage yourself) |
+
+#### VPC Connectivity:
+| Requirement | Solution | Use Case |
+|-------------|----------|----------|
+| **"Connect VPCs (same account/region)"** | VPC Peering | Non-transitive |
+| **"Connect multiple VPCs (hub-spoke)"** | Transit Gateway | Centralized routing |
+| **"Connect on-prem to VPC"** | VPN / Direct Connect | Hybrid |
+| **"Quick VPN setup"** | Site-to-Site VPN | Internet-based |
+| **"Dedicated connection"** | Direct Connect | Private, consistent |
+| **"Access AWS services privately"** | VPC Endpoints | No internet needed |
+
+#### Security:
+| Component | Level | Stateful? |
+|-----------|-------|-----------|
+| **Security Groups** | Instance | Yes (return traffic allowed) |
+| **NACLs** | Subnet | No (explicit rules both ways) |
+
+#### VPC Endpoint Types:
+| Type | Use Case | Services |
+|------|----------|----------|
+| **Gateway Endpoint** | S3, DynamoDB | Free, route table entry |
+| **Interface Endpoint** | Most AWS services | Powered by PrivateLink (ENI) |
+
+---
+
+### **Route 53**
+
+#### Routing Policy Selection (CRITICAL):
+| Requirement | Routing Policy | Use Case |
+|-------------|----------------|----------|
+| **"Single resource"** | Simple | One A record |
+| **"Multiple resources, random"** | Simple (multiple values) | Basic LB |
+| **"A/B testing, gradual migration"** | Weighted | 80% old, 20% new |
+| **"Lowest latency to users"** | Latency-based | Global users |
+| **"Active-passive DR"** | Failover | Primary/secondary |
+| **"Route by user location"** | Geolocation | Content localization |
+| **"Route by geography + bias"** | Geoproximity | Traffic distribution |
+| **"Multiple IPs with health checks"** | Multivalue Answer | Simple LB with health |
+
+---
+
+### **CloudFront**
+
+#### Quick Heuristics:
+| Requirement | Solution |
+|-------------|----------|
+| **"Global content delivery"** | CloudFront |
+| **"Cache at edge"** | CloudFront |
+| **"DDoS protection"** | CloudFront + Shield |
+| **"HTTPS for S3 static site"** | CloudFront (S3 doesn't support HTTPS) |
+| **"Geo-restriction"** | CloudFront geo-restriction |
+| **"Custom SSL"** | CloudFront + ACM certificate |
+| **"Dynamic content"** | CloudFront (cache misses go to origin) |
+| **"Field-level encryption"** | CloudFront field-level encryption |
+
+#### Origin Types:
+- S3 bucket (use OAC for security)
+- Custom Origin (EC2, ALB, on-prem server)
+
+---
+
+### **Global Accelerator**
+
+#### Quick Heuristic:
+| Use Global Accelerator When | Why |
+|------------------------------|-----|
+| **"Non-HTTP applications"** | TCP/UDP support |
+| **"Static IP needed"** | 2 Anycast IPs |
+| **"Fast failover"** | Health checks, instant failover |
+| **"Gaming, VoIP"** | Low latency, UDP |
+
+**CloudFront vs Global Accelerator:**
+- **CloudFront**: HTTP/HTTPS, caching
+- **Global Accelerator**: TCP/UDP, no caching, static IPs
+
+---
+
+### **Load Balancers**
+
+#### Load Balancer Selection:
+| Requirement | Load Balancer | Use Case |
+|-------------|---------------|----------|
+| **"HTTP/HTTPS, Layer 7"** | Application Load Balancer (ALB) | Web apps, path/host routing |
+| **"TCP/UDP, Layer 4"** | Network Load Balancer (NLB) | High performance, static IP |
+| **"Legacy EC2-Classic"** | Classic Load Balancer | Deprecated, avoid |
+| **"Lambda target"** | ALB | Invoke Lambda via HTTP |
+| **"WebSockets"** | ALB | Long-lived connections |
+| **"Millions of requests/sec"** | NLB | Ultra-low latency |
+| **"PrivateLink"** | NLB | Expose services via PrivateLink |
+
+#### ALB Features:
+- Path-based routing (`/api`, `/images`)
+- Host-based routing (`api.example.com`, `www.example.com`)
+- Query string routing
+- HTTP header routing
+- Target groups: EC2, Lambda, IP addresses
+
+---
+
+## 5️⃣ SECURITY, IDENTITY & COMPLIANCE - QUICK DECISIONS
+
+### **IAM (Identity and Access Management)**
+
+#### Core Heuristics:
+| Principle | Rule |
+|-----------|------|
+| **Least Privilege** | Minimum permissions needed |
+| **Users** | For humans (avoid in production) |
+| **Groups** | Organize users |
+| **Roles** | For AWS services & cross-account |
+| **Policies** | JSON documents defining permissions |
+
+#### Cross-Account Access:
+| Scenario | Solution |
+|----------|----------|
+| **"Access another AWS account"** | IAM Role with trust policy |
+| **"Share S3 bucket"** | Bucket policy or IAM role |
+| **"Service needs permissions"** | IAM Role (not IAM user) |
+
+#### Policy Types:
+| Type | Scope |
+|------|-------|
+| **Identity-based** | Attached to users/groups/roles |
+| **Resource-based** | Attached to resources (S3, SQS) |
+| **Permission boundaries** | Max permissions for IAM entity |
+| **SCP (Service Control Policy)** | AWS Organizations, limit accounts |
+
+---
+
+### **KMS (Key Management Service)**
+
+#### Encryption Heuristics:
+| Requirement | Solution |
+|-------------|----------|
+| **"Encrypt at rest"** | KMS (most services integrate) |
+| **"Customer-managed keys"** | Customer Managed Keys (CMK) |
+| **"AWS-managed keys"** | AWS Managed Keys (free) |
+| **"Import your own keys"** | Customer Managed Keys (imported) |
+| **"Automatic rotation"** | Enable auto-rotation (CMK) |
+| **"Compliance, FIPS"** | KMS (FIPS 140-2 Level 2) |
+| **"CloudHSM"** | FIPS 140-2 Level 3 |
+
+---
+
+### **Secrets Manager vs Parameter Store**
+
+| Requirement | Service | Reason |
+|-------------|---------|--------|
+| **"Automatic rotation"** | Secrets Manager | Built-in rotation |
+| **"Database credentials"** | Secrets Manager | RDS integration |
+| **"Application config"** | Parameter Store | Free tier, hierarchical |
+| **"Cross-account secrets"** | Secrets Manager | Resource policy |
+
+---
+
+### **AWS Certificate Manager (ACM)**
+
+#### Quick Heuristics:
+- **"HTTPS certificate"** → ACM (free for AWS services)
+- Works with: CloudFront, ALB, NLB, API Gateway
+- Automatic renewal
+- Cannot export private key (use ACM Private CA if needed)
+
+---
+
+### **WAF (Web Application Firewall)**
+
+#### Quick Heuristics:
+| Requirement | Solution |
+|-------------|----------|
+| **"Block SQL injection"** | WAF with SQL injection rule |
+| **"Block XSS"** | WAF with XSS rule |
+| **"Rate limiting"** | WAF rate-based rule |
+| **"Geo-blocking"** | WAF geo-match rule |
+| **"Bot protection"** | AWS WAF Bot Control |
+
+Attach WAF to: CloudFront, ALB, API Gateway, AppSync
+
+---
+
+### **Shield**
+
+| Requirement | Service | Cost |
+|-------------|---------|------|
+| **"Basic DDoS protection"** | Shield Standard | Free (auto-enabled) |
+| **"Advanced DDoS + response team"** | Shield Advanced | $3000/month |
+
+---
+
+### **Security Hub**
+
+#### Quick Heuristic:
+- **"Centralized security"** + **"Compliance checks"** = Security Hub
+- Aggregates findings from: GuardDuty, Inspector, Macie, IAM Access Analyzer
+
+---
+
+### **GuardDuty**
+
+#### Quick Heuristic:
+- **"Threat detection"** / **"Anomaly detection"** = GuardDuty
+- Analyzes: CloudTrail, VPC Flow Logs, DNS logs
+- Detects: Compromised instances, reconnaissance, cryptocurrency mining
+
+---
+
+### **Inspector**
+
+#### Quick Heuristic:
+- **"Vulnerability scanning"** for EC2, ECR, Lambda = Inspector
+- Checks: CVEs, network exposure, best practices
+
+---
+
+### **Macie**
+
+#### Quick Heuristic:
+- **"Discover PII in S3"** / **"Sensitive data"** = Macie
+- Uses ML to identify and protect sensitive data
+
+---
+
+### **CloudTrail**
+
+#### Quick Heuristics:
+| Requirement | Solution |
+|-------------|----------|
+| **"Who did what?"** | CloudTrail |
+| **"API call logging"** | CloudTrail |
+| **"Compliance audit"** | CloudTrail → S3 |
+| **"Real-time analysis"** | CloudTrail → CloudWatch Logs |
+| **"Multi-account logging"** | Organization trail |
+
+---
+
+### **Config**
+
+#### Quick Heuristics:
+| Requirement | Solution |
+|-------------|----------|
+| **"Resource inventory"** | AWS Config |
+| **"Configuration compliance"** | Config Rules |
+| **"Configuration history"** | Config timeline |
+| **"Remediation"** | Config with SSM Automation |
+
+---
+
+## 6️⃣ APPLICATION INTEGRATION - QUICK DECISIONS
+
+### **SQS (Simple Queue Service)**
+
+#### Queue Type Selection:
+| Requirement | Queue Type | Details |
+|-------------|-----------|---------|
+| **"Decouple components"** | SQS Standard | Best-effort ordering |
+| **"Exactly-once processing"** | SQS FIFO | Max 300 TPS (3000 with batching) |
+| **"Order matters"** | SQS FIFO | Guaranteed ordering |
+| **"High throughput"** | SQS Standard | Unlimited TPS |
+
+#### Key Concepts:
+- **Visibility Timeout**: Message invisible during processing
+- **Dead Letter Queue**: Failed messages after retries
+- **Long Polling**: Reduce API calls, more efficient
+
+---
+
+### **SNS (Simple Notification Service)**
+
+#### Quick Heuristics:
+| Requirement | Solution |
+|-------------|----------|
+| **"Pub/Sub pattern"** | SNS |
+| **"Fan-out to multiple targets"** | SNS → SQS/Lambda/HTTP/Email |
+| **"SMS notifications"** | SNS |
+| **"Mobile push"** | SNS |
+| **"Email alerts"** | SNS |
+
+#### SNS + SQS (Fan-out Pattern):
+```
+SNS Topic
+  ├→ SQS Queue 1
+  ├→ SQS Queue 2
+  └→ Lambda
+```
+
+---
+
+### **EventBridge (CloudWatch Events)**
+
+#### Quick Heuristics:
+| Requirement | Solution |
+|-------------|----------|
+| **"Scheduled events" (cron)** | EventBridge |
+| **"React to AWS events"** | EventBridge |
+| **"Event-driven architecture"** | EventBridge |
+| **"Route events to targets"** | EventBridge rules |
+| **"SaaS integration"** | EventBridge (partner events) |
+
+**Targets**: Lambda, Step Functions, SQS, SNS, Kinesis, ECS tasks, etc.
+
+---
+
+### **Step Functions**
+
+#### Quick Heuristics:
+| Requirement | Solution |
+|-------------|----------|
+| **"Orchestrate Lambda"** | Step Functions |
+| **"Visual workflow"** | Step Functions |
+| **"Long-running process"** | Step Functions Standard |
+| **"High-volume, short"** | Step Functions Express |
+| **"Human approval step"** | Step Functions with callback |
+
+---
+
+### **API Gateway**
+
+#### API Type Selection:
+| Requirement | API Type | Use Case |
+|-------------|----------|----------|
+| **"REST API"** | REST API | Full features, caching |
+| **"HTTP API"** | HTTP API | Simpler, cheaper, 70% less cost |
+| **"WebSocket"** | WebSocket API | Real-time, bidirectional |
+
+#### Features:
+- Throttling (10,000 RPS default)
+- Caching (reduce backend calls)
+- Request/response transformation
+- API keys, usage plans
+- CORS configuration
+
+---
+
+### **AppSync**
+
+#### Quick Heuristic:
+- **"GraphQL API"** / **"Real-time subscriptions"** = AppSync
+- Integrates with: DynamoDB, Lambda, RDS, HTTP endpoints
+
+---
+
+## 7️⃣ ANALYTICS & BIG DATA - QUICK DECISIONS
+
+### **Kinesis**
+
+#### Kinesis Service Selection:
+| Requirement | Service | Use Case |
+|-------------|---------|----------|
+| **"Real-time streaming"** | Kinesis Data Streams | Custom processing |
+| **"Load to S3/Redshift/OpenSearch"** | Kinesis Data Firehose | No code, managed delivery |
+| **"Real-time analytics (SQL)"** | Kinesis Data Analytics | SQL queries on streams |
+| **"Process video streams"** | Kinesis Video Streams | Video analytics |
+
+#### Kinesis Data Streams Heuristics:
+- Shard = 1 MB/s in, 2 MB/s out
+- Data retention: 24 hours (default) to 365 days
+- Use when: Custom processing, exactly-once, ordering
+
+#### Kinesis Firehose Heuristics:
+- Near real-time (60 seconds latency)
+- Auto-scales
+- Use when: Simple ETL to S3/Redshift/OpenSearch
+
+---
+
+### **Athena**
+
+#### Quick Heuristics:
+| Scenario | Decision |
+|----------|----------|
+| **"Query S3 with SQL"** | Athena |
+| **"Serverless analytics"** | Athena |
+| **"No ETL needed"** | Athena |
+| **"Ad-hoc queries"** | Athena |
+
+**Cost optimization**: Use columnar formats (Parquet, ORC), partition data
+
+---
+
+### **Glue**
+
+#### Quick Heuristics:
+| Requirement | Component |
+|-------------|-----------|
+| **"ETL jobs"** | Glue ETL |
+| **"Discover schema"** | Glue Crawler |
+| **"Data catalog"** | Glue Data Catalog |
+| **"Serverless Spark"** | Glue |
+
+---
+
+### **EMR (Elastic MapReduce)**
+
+#### Quick Heuristic:
+- **"Big Data frameworks"** (Hadoop, Spark, HBase, Presto) = EMR
+- Use when: Need control over cluster, complex processing
+
+---
+
+### **QuickSight**
+
+#### Quick Heuristic:
+- **"Business Intelligence"** / **"Dashboards"** / **"Visualizations"** = QuickSight
+- Serverless, pay-per-session
+
+---
+
+### **OpenSearch (Elasticsearch)**
+
+#### Quick Heuristics:
+| Scenario | Decision |
+|----------|----------|
+| **"Full-text search"** | OpenSearch |
+| **"Log analytics"** | OpenSearch |
+| **"Real-time dashboards"** | OpenSearch + Kibana |
+| **"Clickstream analysis"** | OpenSearch |
+
+---
+
+### **MSK (Managed Streaming for Kafka)**
+
+#### Quick Heuristic:
+- **"Apache Kafka"** / **"Existing Kafka apps"** = MSK
+- Alternative to Kinesis when you need Kafka specifically
+
+---
+
+## 8️⃣ MIGRATION & TRANSFER - QUICK DECISIONS
+
+### **DMS (Database Migration Service)**
+
+#### Quick Heuristics:
+| Requirement | Solution |
+|-------------|----------|
+| **"Migrate database"** | DMS |
+| **"Homogeneous migration"** (MySQL→MySQL) | DMS only |
+| **"Heterogeneous migration"** (Oracle→PostgreSQL) | SCT + DMS |
+| **"Continuous replication"** | DMS (CDC - Change Data Capture) |
+| **"Minimal downtime"** | DMS |
+
+---
+
+### **MGN (Application Migration Service)**
+
+#### Quick Heuristic:
+- **"Lift and shift"** / **"Rehost"** = MGN
+- Replaces AWS SMS (Server Migration Service)
+- Continuous replication, minimal downtime
+
+---
+
+### **DataSync**
+
+#### Quick Heuristics:
+| Scenario | Service |
+|----------|---------|
+| **"Transfer on-prem to AWS"** (NFS/SMB) | DataSync |
+| **"Transfer between AWS storage"** | DataSync |
+| **"Scheduled transfers"** | DataSync |
+| **"Incremental transfers"** | DataSync |
+
+**DataSync vs Storage Gateway:**
+- **DataSync**: One-time or scheduled migrations
+- **Storage Gateway**: Ongoing hybrid storage
+
+---
+
+### **Snow Family**
+
+#### Device Selection:
+| Requirement | Device | Capacity | Use Case |
+|-------------|--------|----------|----------|
+| **"<80 TB"** | Snowcone | 8 TB | Edge computing, small migrations |
+| **"<1 PB"** | Snowball Edge | 80 TB | Large migrations, edge compute |
+| **">10 PB"** | Snowmobile | 100 PB | Datacenter migration |
+
+#### Quick Heuristics:
+- Use Snow when: Limited bandwidth, large data, secure transfer
+- **Snowcone**: Portable, rugged
+- **Snowball Edge**: Storage + compute
+- **Snowmobile**: Exabyte-scale (truck)
+
+---
+
+### **Transfer Family**
+
+#### Quick Heuristic:
+- **"SFTP/FTPS/FTP to S3"** = AWS Transfer Family
+- Managed file transfer service
+
+---
+
+## 9️⃣ MANAGEMENT & GOVERNANCE - QUICK DECISIONS
+
+### **CloudFormation**
+
+#### Quick Heuristics:
+| Requirement | Solution |
+|-------------|----------|
+| **"Infrastructure as Code"** | CloudFormation |
+| **"Repeatable deployments"** | CloudFormation |
+| **"Cross-region deployment"** | CloudFormation StackSets |
+| **"Drift detection"** | CloudFormation |
+| **"Rollback on failure"** | CloudFormation (automatic) |
+
+**Key Concepts:**
+- Stack = collection of resources
+- Template = JSON/YAML definition
+- StackSets = multi-account/region
+
+---
+
+### **Systems Manager**
+
+#### Systems Manager Components:
+| Requirement | Component |
+|-------------|-----------|
+| **"Run commands on EC2"** | Run Command |
+| **"Patch management"** | Patch Manager |
+| **"Session access (no SSH)"** | Session Manager |
+| **"Store configuration"** | Parameter Store |
+| **"Automation workflows"** | Automation |
+| **"Inventory management"** | Inventory |
+| **"Compliance reporting"** | State Manager |
+
+---
+
+### **Organizations**
+
+#### Quick Heuristics:
+| Requirement | Solution |
+|-------------|----------|
+| **"Multiple AWS accounts"** | AWS Organizations |
+| **"Consolidated billing"** | Organizations |
+| **"Apply policies to accounts"** | Service Control Policies (SCPs) |
+| **"Account-level restrictions"** | SCPs |
+
+---
+
+### **Control Tower**
+
+#### Quick Heuristic:
+- **"Multi-account setup"** + **"Best practices"** + **"Guardrails"** = Control Tower
+- Built on Organizations, automates account setup
+
+---
+
+### **Trusted Advisor**
+
+#### Quick Heuristics:
+| Category | Checks |
+|----------|--------|
+| **Cost Optimization** | Underutilized resources |
+| **Performance** | Service limits, throughput |
+| **Security** | Open ports, IAM usage |
+| **Fault Tolerance** | Backups, Multi-AZ |
+| **Service Limits** | Approaching limits |
+
+**Tiers:**
+- Basic/Developer: Core checks
+- Business/Enterprise: All checks
+
+---
+
+### **CloudWatch**
+
+#### CloudWatch Components:
+| Requirement | Component |
+|-------------|-----------|
+| **"Metrics"** | CloudWatch Metrics |
+| **"Logs"** | CloudWatch Logs |
+| **"Alarms"** | CloudWatch Alarms |
+| **"Dashboards"** | CloudWatch Dashboards |
+| **"Events"** | EventBridge (formerly CloudWatch Events) |
+| **"Application monitoring"** | CloudWatch Application Insights |
+| **"Container monitoring"** | Container Insights |
+| **"Lambda monitoring"** | Lambda Insights |
+
+---
+
+### **X-Ray**
+
+#### Quick Heuristic:
+- **"Distributed tracing"** / **"Debug microservices"** = X-Ray
+- Visualize request flow through services
+
+---
+
+## 🔟 ADDITIONAL SERVICES - QUICK DECISIONS
+
+### **Cognito**
+
+#### Cognito Component Selection:
+| Requirement | Component | Use Case |
+|-------------|-----------|----------|
+| **"User pools"** | Cognito User Pools | Authentication (sign-up/sign-in) |
+| **"Identity pools"** | Cognito Identity Pools | Authorization (AWS credentials) |
+| **"Social login"** | User Pools | Facebook, Google, Amazon |
+| **"SAML/OIDC"** | User Pools | Enterprise SSO |
+
+---
+
+### **SES (Simple Email Service)**
+
+#### Quick Heuristic:
+- **"Send transactional email"** / **"Marketing emails"** = SES
+- **SNS** for notifications, **SES** for email campaigns
+
+---
+
+### **SQS vs SNS vs EventBridge**
+
+| Use Case | Service | Reason |
+|----------|---------|--------|
+| **Decouple, queue** | SQS | Point-to-point |
+| **Fan-out** | SNS | Pub/sub, multiple subscribers |
+| **Event routing** | EventBridge | Rules, filtering, SaaS integration |
+| **Schedule events** | EventBridge | Cron expressions |
+
+---
+
+### **Well-Architected Framework Pillars**
+
+Quick reference for holistic architecture questions:
+
+1. **Operational Excellence**: Automation, monitoring, continuous improvement
+2. **Security**: Least privilege, encryption, defense in depth
+3. **Reliability**: Multi-AZ, backup, auto-scaling
+4. **Performance Efficiency**: Right-sizing, caching, serverless
+5. **Cost Optimization**: Reserved, Spot, S3 lifecycle, right-sizing
+6. **Sustainability**: Efficient resources, serverless when possible
+
+---
+
+## 🎯 UNIVERSAL EXAM SHORTCUTS
+
+### **Keyword → Service Mapping**
+
+| Keyword | Think Of |
+|---------|----------|
+| **"Serverless"** | Lambda, DynamoDB, API Gateway, S3 |
+| **"Decouple"** | SQS, SNS, EventBridge |
+| **"Cache"** | CloudFront, ElastiCache, DAX, API Gateway |
+| **"Real-time"** | Kinesis Data Streams, DynamoDB Streams |
+| **"Near real-time"** | Kinesis Firehose |
+| **"Lowest latency"** | CloudFront, Global Accelerator, ElastiCache |
+| **"High availability"** | Multi-AZ, Auto Scaling, ALB |
+| **"Disaster recovery"** | Backups, Multi-Region, Pilot Light |
+| **"Cost-effective"** | S3 IA/Glacier, Spot, Reserved, Serverless |
+| **"Managed"** | RDS, DynamoDB, ECS Fargate, Lambda |
+| **"Query S3"** | Athena, Redshift Spectrum |
+| **"ETL"** | Glue |
+| **"Big Data"** | EMR, Kinesis, Redshift |
+| **"Graph"** | Neptune |
+| **"Time-series"** | Timestream |
+| **"Immutable"** | QLDB |
+| **"Hybrid"** | Storage Gateway, Direct Connect, VPN |
+| **"Migrate database"** | DMS (+SCT) |
+| **"Lift and shift"** | MGN |
+| **"Infrastructure as Code"** | CloudFormation |
+| **"Threat detection"** | GuardDuty |
+| **"Compliance"** | Config, CloudTrail, Security Hub |
+| **"Container"** | ECS, EKS, Fargate |
+
+---
+
+## 🏆 FINAL EXAM STRATEGY
+
+### **Question Analysis Framework:**
+
+1. **Identify Primary Requirement**
+   - Cost? Performance? Security? Availability?
+
+2. **Spot Keywords**
+   - "Serverless", "real-time", "decouple", "cost-effective"
+
+3. **Eliminate Wrong Answers**
+   - Over-engineered solutions
+   - Non-managed when managed exists
+   - Single-AZ when HA is mentioned
+
+4. **Apply Heuristics**
+   - Match keywords to service shortcuts above
+
+5. **Verify Solution**
+   - Does it meet ALL requirements?
+   - Is it the SIMPLEST solution that works?
+
+### **Time Management:**
+- 65 questions ÷ 130 minutes = **2 minutes per question**
+- Flag difficult questions (review at end)
+- Don't overthink - first instinct often correct
+- Use elimination strategy
+
+### **Common Traps:**
+- ❌ Choosing complex over simple
+- ❌ Missing "cost-effective" requirement
+- ❌ Ignoring "high availability" cues
+- ❌ Selecting legacy services (Classic LB, etc.)
+
+---
+
+## 📚 SUMMARY: TOP 20 EXAM HEURISTICS
+
+1. **"Serverless"** → Lambda + DynamoDB + S3 + API Gateway
+2. **"High Availability"** → Multi-AZ + ALB + Auto Scaling
+3. **"Disaster Recovery"** → Multi-Region replication
+4. **"Cost-effective storage"** → S3 Intelligent-Tiering or Glacier
+5. **"Decouple"** → SQS between components
+6. **"Fan-out"** → SNS topic → Multiple SQS queues
+7. **"Real-time"** → Kinesis Data Streams
+8. **"Query S3"** → Athena
+9. **"Cache database"** → ElastiCache (RDS) or DAX (DynamoDB)
+10. **"Global content"** → CloudFront
+11. **"Lowest latency routing"** → Route 53 Latency-based
+12. **"Managed database"** → RDS (relational) or DynamoDB (NoSQL)
+13. **"Migrate database"** → DMS (+ SCT if heterogeneous)
+14. **"Encryption at rest"** → KMS
+15. **"Encryption in transit"** → TLS/SSL (HTTPS)
+16. **"Cross-account access"** → IAM Role with trust policy
+17. **"Audit API calls"** → CloudTrail
+18. **"Resource compliance"** → AWS Config
+19. **"Threat detection"** → GuardDuty
+20. **"Infrastructure as Code"** → CloudFormation
+
+---
+
+**🎉 You're now equipped with comprehensive service-specific shortcuts for AWS SAA-C03!**
+
+*Use these heuristics to make split-second decisions and ace your exam!*
