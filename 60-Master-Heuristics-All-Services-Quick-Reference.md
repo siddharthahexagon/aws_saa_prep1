@@ -2,25 +2,6 @@
 
 ## 🎯 Ultimate Quick Reference: All Services, All Domains, All Decision Patterns
 
-**Purpose:** Lightning-fast service selection for ANY exam question. If-then rules for instant answers.
-
----
-
-## 📋 TABLE OF CONTENTS
-
-1. [COMPUTE - Quick Decision Heuristics](#compute---quick-decision-heuristics)
-2. [STORAGE - Quick Decision Heuristics](#storage---quick-decision-heuristics)
-3. [DATABASE - Quick Decision Heuristics](#database---quick-decision-heuristics)
-4. [NETWORKING - Quick Decision Heuristics](#networking---quick-decision-heuristics)
-5. [SECURITY - Quick Decision Heuristics](#security---quick-decision-heuristics)
-6. [MONITORING - Quick Decision Heuristics](#monitoring---quick-decision-heuristics)
-7. [INTEGRATION - Quick Decision Heuristics](#integration---quick-decision-heuristics)
-8. [ANALYTICS - Quick Decision Heuristics](#analytics---quick-decision-heuristics)
-9. [MIGRATION - Quick Decision Heuristics](#migration---quick-decision-heuristics)
-10. [DOMAIN-SPECIFIC PATTERNS](#domain-specific-patterns)
-
----
-
 # COMPUTE - Quick Decision Heuristics
 
 ## ⚡ EC2 vs Lambda vs Container vs Batch - Master Decision
@@ -102,7 +83,7 @@
 
 ---
 
-# STORAGE - Quick Decision Heuristics
+# STORAGE 
 
 ## 📦 Main Storage Service Selection
 
@@ -178,7 +159,6 @@
 
 ---
 
-# DATABASE - Quick Decision Heuristics
 
 ## 🗄️ Database Type Selection - First Decision
 
@@ -277,7 +257,7 @@
 
 ---
 
-# NETWORKING - Quick Decision Heuristics
+# NETWORKING 
 
 ## 🌐 VPC Components - Quick Selection
 
@@ -373,7 +353,7 @@
 
 ---
 
-# SECURITY - Quick Decision Heuristics
+# SECURITY
 
 ## 🔒 Identity & Access Management
 
@@ -491,7 +471,6 @@
 
 ---
 
-# INTEGRATION - Quick Decision Heuristics
 
 ## 🔄 Application Integration Services
 
@@ -532,7 +511,6 @@
 
 ---
 
-# ANALYTICS - Quick Decision Heuristics
 
 ## 📈 Analytics Services Matrix
 
@@ -549,7 +527,6 @@
 
 ---
 
-# MIGRATION - Quick Decision Heuristics
 
 ## 🚀 Migration Services Selection
 
@@ -899,90 +876,6 @@ Example: Lambda might cost more than EC2 for sustained high traffic
 
 ---
 
-## 🎓 STUDY STRATEGY FOR THIS FILE
-
-### Week Before Exam:
-1. Read through entire file 3 times
-2. Create flashcards for keyword mappings
-3. Practice with sample questions
-4. Review "Common Exam Traps" section
-
-### Day Before Exam:
-1. Review "Critical Exam Patterns" section
-2. Review "Keyword → Service Mapping" table
-3. Memorize service limits
-4. Quick scan of all heuristic tables
-
-### 1 Hour Before Exam:
-1. Review "Common Exam Traps" one more time
-2. Review domain-specific patterns
-3. Quick mental rehearsal of decision trees
-
----
-
-## 🏆 HOW TO USE THIS FILE DURING PRACTICE EXAMS
-
-1. **Read the question carefully**
-2. **Identify keywords** (serverless, multi-AZ, petabyte, etc.)
-3. **Check keyword mapping table** for instant answer
-4. **Verify with relevant heuristic table**
-5. **Check for exam traps**
-6. **Select answer**
-
-### Example Question Workflow:
-
-**Question:** "A company needs to store infrequently accessed data that must be retrieved instantly when needed. What is the most cost-effective solution?"
-
-**Your Thought Process:**
-1. Keywords: "infrequently accessed" + "instant retrieval" + "cost-effective"
-2. Check S3 storage class heuristics
-3. Find: "Infrequent + instant retrieval" → **S3 Standard-IA** or **S3 Glacier Instant Retrieval**
-4. Between the two, Glacier Instant is cheaper
-5. Answer: **S3 Glacier Instant Retrieval**
-
-Time taken: **10-15 seconds**
-
----
-
-## 🎯 FINAL QUICK TIPS
-
-1. **If in doubt, choose serverless** (Lambda, DynamoDB, Aurora Serverless, Fargate)
-2. **Security questions:** Look for least privilege + encryption + MFA
-3. **Cost questions:** Look for Reserved/Spot + appropriate storage class + caching
-4. **Performance questions:** Look for caching + read replicas + right instance type
-5. **HA questions:** Look for Multi-AZ + load balancer + Auto Scaling
-6. **DR questions:** Check RTO/RPO requirements → match to DR tier
-7. **When "serverless" is mentioned:** Always consider Lambda, DynamoDB, Aurora Serverless first
-8. **When "most cost-effective":** Consider spot instances, lifecycle policies, reserved capacity
-9. **When "highest performance":** Consider caching at every layer
-10. **When confused between two services:** Ask "What's the core requirement?" and match to primary use case
-
----
-
-## ✅ CONFIDENCE CHECKLIST
-
-Before the exam, ensure you can answer these instantly:
-
-- [ ] I can choose between EC2, Lambda, and containers in 5 seconds
-- [ ] I can select the right EC2 instance type based on keywords
-- [ ] I can choose the correct S3 storage class for any scenario
-- [ ] I know when to use RDS vs DynamoDB
-- [ ] I understand Multi-AZ vs Read Replica vs Multi-Region
-- [ ] I can differentiate between Security Group and NACL
-- [ ] I know when to use ALB vs NLB
-- [ ] I understand all Route 53 routing policies
-- [ ] I can select between CloudFront and Global Accelerator
-- [ ] I know all DR strategies and their RTO/RPO
-- [ ] I can identify the right caching strategy
-- [ ] I understand IAM roles vs users vs policies
-- [ ] I know when to use KMS vs Secrets Manager vs Parameter Store
-- [ ] I can choose between SQS, SNS, and EventBridge
-- [ ] I understand all security services (GuardDuty, Inspector, Macie, etc.)
-
----
-
-## 🎯 ONE-PAGE SUMMARY FOR EXAM DAY
-
 ### Top 20 Service Decisions (Covers 80% of Questions)
 
 1. **Serverless compute** → Lambda
@@ -1006,10 +899,4 @@ Before the exam, ensure you can answer these instantly:
 19. **Serverless containers** → Fargate
 20. **Multi-AZ HA** → Multi-AZ RDS/Aurora + ALB + Auto Scaling
 
-**Master these 20, and you'll answer most questions correctly!**
 
----
-
-**Good luck on your AWS SAA-C03 exam! 🚀**
-
-*Remember: AWS favors well-architected, resilient, secure, performant, and cost-optimized solutions. When in doubt, choose the answer that best embodies these principles.*
